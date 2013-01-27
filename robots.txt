@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: http://conkiztador.github.com/sitemap.xml 

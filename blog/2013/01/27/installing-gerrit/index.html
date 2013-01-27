@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Using Gerrit for Change Control - Purple Monkey-Patch</title>
+  <meta name="author" content="Kieran Spear">
+
+  
+  <meta name="description" content="As an OpenStack contributor I&#8217;ve had to learn to use Gerrit to submit changes to the Horizon project. OpenStack uses Gerrit to make sure any &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://conkiztador.github.com/blog/2013/01/27/installing-gerrit/">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="/javascripts/ender.js"></script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/atom.xml" rel="alternate" title="Purple Monkey-Patch" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   class="no-sidebar"  >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Purple Monkey-Patch</a></h1>
+  
+    <h2>And other things that make little sense.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:conkiztador.github.com" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Using Gerrit for Change Control</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-27T14:43:00+11:00" pubdate data-updated="true">Jan 27<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>As an <a href="http://openstack.org/">OpenStack</a> contributor I&#8217;ve had to learn to use <a href="http://gerrit.googlecode.com/">Gerrit</a> to submit changes to the Horizon project. OpenStack uses Gerrit to make sure any changes to source code go through a review and testing process before being committed to the official Github repository. Once a change has been reviewed by a number of reviewers and approved by a core reviewer, Gerrit automatically merges the code to the repo. Gerrit also takes care of running unit tests, static code analysis and gate jobs during the process.</p>
+
+<p>Now that I&#8217;ve seen how Gerrit benefits OpenStack, I&#8217;m experimenting with using it for internal projects. Gerrit is fairly simple to install, and can integrate with existing repositories on Github or within your private infrastructure.</p>
+
+<!-- more -->
+
+
+<h2>Installing Gerrit</h2>
+
+<p>I followed these guides to get Gerrit installed:</p>
+
+<ul>
+<li><a href="http://gerrit-documentation.googlecode.com/svn/Documentation/2.5.1/install-quick.html">Gerrit Code Review - Quick Get Started Guide</a></li>
+<li><a href="http://ci.openstack.org/gerrit.html">OpenStack Gerrit infrastructure</a></li>
+<li>Borrowed the nginx setup from  <a href="http://feeding.cloud.geek.nz/posts/code-reviews-with-gerrit-and-gitorious/">Code reviews with Gerrit and Gitorious</a></li>
+</ul>
+
+
+<p>I mostly used the quick guide except for a few points:</p>
+
+<ul>
+<li>I used the latest version of Gerrit (<a href="https://code.google.com/p/gerrit/downloads/detail?name=gerrit-full-2.5.1.war">2.5.1</a> at the time of writing).</li>
+<li>The <code>--batch</code> install option left me without admin access in the new installation.
+I ended up deleting the first install and running again in the guided install mode.</li>
+<li>My second mistake &#8211; make sure you answer yes to the plugin question
+if you want changes from Gerrit to be pushed to another repo.
+I had to pull the replication plugin out of the .jar manually and put it in the plugins directory.</li>
+</ul>
+
+
+<p>The rest of this post assumes you have Gerrit installed on localhost.</p>
+
+<h2>Add your public key</h2>
+
+<p>Open <a href="http://localhost:8000/">your Gerrit web interface</a> and login using OpenID (I used my Google account).
+The first account to login is automatically added to the Administrator group.
+You should be presented with a form that lets you pick a local username,
+and a place to paste your public key.</p>
+
+<h2>Pushing your first project</h2>
+
+<p>Assuming you have a Git repository ready to go, here&#8217;s how to get it into Gerrit.</p>
+
+<p>First, create the project in the Gerrit database:</p>
+
+<pre><code>$ ssh -p 29418 user@localhost gerrit create-project --name user/my-project
+</code></pre>
+
+<p>The <code>user/my-project</code> convention is important for Github integration &#8211;
+if you care about this, use your Github username here.</p>
+
+<p>Then, push the code:</p>
+
+<pre><code>$ cd my-project
+$ git push ssh://user@localhost:29418/user/my-project *:*
+</code></pre>
+
+<p>Note: This step requires special permissions.
+In the top-left menu of the web interface, go to
+<code>Projects &gt; List &gt; All-Projects &gt; Access &gt; Edit</code>,
+and add the <code>Create reference</code> permission to <code>refs/heads/*</code>.</p>
+
+<p>While you&#8217;re there assigning permissions, you&#8217;ll want to add <code>Code-Review</code>,
+<code>Verified</code> and <code>Submit</code> power to the appropriate groups.
+You can be <a href="http://gerrit.googlecode.com/svn/documentation/2.1.2/access-control.html">quite elaborate</a> with your group/permissions setup,
+but I just added <code>Code-Review (-2/+2)</code> and <code>Submit</code> to the <code>Administrator</code> group.
+<code>Submit</code> is the final okay for changes to be merged and replicated to remote repositories (more on this later).
+Because we don&#8217;t have a CI setup yet,
+I also added <code>Verified</code> as a reminder both to run the tests manually,
+and to <em>hurry up and set up a <a href="http://jenkins-ci.org/">CI server</a></em>.</p>
+
+<h2>The review workflow</h2>
+
+<h3>Using git-review</h3>
+
+<p>You can push a branch to Gerrit manually to create a new review,
+but the <code>git-review</code> tool makes things easier.</p>
+
+<pre><code># apt-get install git-review
+</code></pre>
+
+<p><code>git-review</code> looks for a <code>.gitreview</code> file in the root of your repository.
+This tells it where to upload reviews, and which branch is the default:</p>
+
+<figure class='code'><figcaption><span>.gitreview </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[gerrit]
+</span><span class='line'>host=localhost
+</span><span class='line'>port=29418
+</span><span class='line'>project=user/my-project.git
+</span><span class='line'>defaultbranch=master</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If you commit this file to your repository,
+any new contributors will only have to issue a <code>git-review</code>
+command within the project directory to upload a new change.</p>
+
+<h3>Create a review</h3>
+
+<p>Make a change:</p>
+
+<figure class='code'> <div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nb">cd </span>my-project
+</span><span class='line'>cat &gt; new-file
+</span><span class='line'>    VERY IMPORTANT CHANGE
+</span><span class='line'>
+</span><span class='line'>git add new-file
+</span><span class='line'>git commit -m <span class="s2">&quot;Added a very important change.&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Upload the review:</p>
+
+<pre><code>$ git-review
+</code></pre>
+
+<h3>Review it</h3>
+
+<p>Click on the review in the web interface.
+Examine the diffs and make comments inline if you like.
+When you&#8217;re ready to publish the review,
+click the <code>Review</code> button under the file list,
+assign your scores, and publish.</p>
+
+<h3>Submit the change for merging</h3>
+
+<p>When you&#8217;re satisfied that the change has been reviewed and tested,
+click <code>Submit change</code> to lock it in and add the commit to Gerrit&#8217;s local repo.</p>
+
+<h2>Pushing merges to external repositories</h2>
+
+<h3>Configure replication</h3>
+
+<p>When a reviewer submits a review for merging, Gerrit merges it to its local repository.
+But if you&#8217;re a Github user you probably want your public repo to be updated too.
+That&#8217;s where the replication plugin comes in.
+Fill in <code>etc/replication.config</code> in your Gerrit deployment directory to configure it.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[remote "github"]
+</span><span class='line'>url = git@github.com:${name}.git</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Restart Gerrit after you&#8217;ve done this.</p>
+
+<h3>Give Gerrit access to your repos</h3>
+
+<p>Gerrit needs permission to push to your repo.
+You have two options:</p>
+
+<ul>
+<li>Per-repo deploy keys: you add Gerrit&#8217;s public key to each repo&#8217;s settings as a deploy key.</li>
+<li>Machine user: you create a new Github user just for Gerrit
+and use Github&#8217;s user/group permissions mechanisms to grant
+access to each repo. In case this sounds a bit shady
+&#8211; Github says this is totally okay.</li>
+</ul>
+
+
+<p><a href="https://help.github.com/articles/managing-deploy-keys">More information</a> at Github.</p>
+
+<p>Now you can <code>Submit</code> a change to be merged,
+and after a small delay (15 seconds by default),
+the change will land in your remote repo.</p>
+
+<h2>The end</h2>
+
+<p>In the future:
+email notification,
+hooking up <a href="http://jenkins-ci.org/">Jenkins</a> for automated testing,
+and how to use Gerrit with <a href="http://puppetlabs.com/puppet/puppet-open-source/">Puppet</a> to review changes to your infrastructure.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Kieran Spear</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-27T14:43:00+11:00" pubdate data-updated="true">Jan 27<span>th</span>, 2013</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Kieran Spear -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'purplemonkeypatch';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://conkiztador.github.com/blog/2013/01/27/installing-gerrit/';
+        var disqus_url = 'http://conkiztador.github.com/blog/2013/01/27/installing-gerrit/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
