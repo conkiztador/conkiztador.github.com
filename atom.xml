@@ -4,7 +4,7 @@
   <title><![CDATA[Purple Monkey-Patch]]></title>
   <link href="http://conkiztador.github.com/atom.xml" rel="self"/>
   <link href="http://conkiztador.github.com/"/>
-  <updated>2013-01-27T16:55:10+11:00</updated>
+  <updated>2013-01-28T15:52:11+11:00</updated>
   <id>http://conkiztador.github.com/</id>
   <author>
     <name><![CDATA[Kieran Spear]]></name>
@@ -52,7 +52,7 @@ I had to pull the replication plugin out of the .jar manually and put it in the 
 
 <h2>Add your public key</h2>
 
-<p>Open <a href="http://localhost:8000/">your Gerrit web interface</a> and login using OpenID (I used my Google account).
+<p>Open <a href="http://localhost:8080/">your Gerrit web interface</a> and login using OpenID (I used my Google account).
 The first account to login is automatically added to the Administrator group.
 You should be presented with a form that lets you pick a local username,
 and a place to paste your public key.</p>
